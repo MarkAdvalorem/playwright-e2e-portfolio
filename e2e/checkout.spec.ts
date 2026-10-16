@@ -1,63 +1,77 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from '@playwright/test';
 
-test.describe("Checkout", () => {
+// Product card on the inventory page, found by the product name it displays.
+// First step towards the Page Objects of step 3.
+const productCard = (page: Page, productName: string) =>
+	page.getByTestId('inventory-item').filter({ hasText: productName });
+
+test.describe('Checkout', () => {
 	test.beforeEach(async ({ page }) => {
-		//visit saucedemo homepage
-		await page.goto("https://www.saucedemo.com/");
-		//fill form and login
-		await page.locator('[data-test="username"]').fill('standard_user');
-		await page.locator('[data-test="password"]').fill('secret_sauce');
-		await page.locator('[data-test="login-button"]').click();
-	})
+		await page.goto('https://www.saucedemo.com/');
+		await page.getByPlaceholder('Username').fill('standard_user');
+		await page.getByPlaceholder('Password').fill('secret_sauce');
+		await page.getByRole('button', { name: 'Login' }).click();
+	});
 
-	test('Should choose product, go to cart and checkout it', async ({ page }) => {
-		//choose 2 products
-		await page.locator('[data-test="add-to-cart-sauce-labs-backpack"]').click();
-		await page.locator('[data-test="add-to-cart-test.allthethings()-t-shirt-(red)"]').click();
-		//open cart
-		await page.locator('[data-test="shopping-cart-link"]').click();
-		//checkout it
-		await page.locator('[data-test="checkout"]').click();
-		await expect(page).toHaveURL('https://www.saucedemo.com/checkout-step-one.html');
-		//fill form and validate
+	test('Should complete an order with two products', async ({ page }) => {
+		await test.step('Add two products and go to checkout', async () => {
+			await productCard(page, 'Sauce Labs Backpack').getByRole('button', { name: 'Add to cart' }).click();
+			await productCard(page, 'Test.allTheThings() T-Shirt (Red)')
+				.getByRole('button', { name: 'Add to cart' })
+				.click();
+			await page.getByTestId('shopping-cart-link').click();
+			await page.getByRole('button', { name: 'Checkout' }).click();
+			await expect(page).toHaveURL(/checkout-step-one\.html/);
+		});
+
 		await test.step('Fill in shipping information', async () => {
-			await page.locator('[data-test="firstName"]').fill('Tsanta');
-			await page.locator('[data-test="lastName"]').fill('Mark');
-			await page.locator('[data-test="postalCode"]').fill('104');
-			await page.locator('[data-test="continue"]').click();
-		})
-		await test.step('Check final shipping information', async () => {
-			await expect(page).toHaveURL('https://www.saucedemo.com/checkout-step-two.html');
-			await expect(page.locator('[data-test="cart-list"]')).toBeVisible();
-			await expect(page.locator('[data-test="total-info-label"]')).toContainText('Price Total');
-			await expect(page.locator('[data-test="subtotal-label"]')).toContainText('Item total: $45.98');
-			await expect(page.locator('[data-test="tax-label"]')).toContainText('Tax: $3.68');
-			await expect(page.locator('[data-test="total-label"]')).toContainText('Total: $49.66');
-			await page.locator('[data-test="finish"]').click();
-		})
-		//check message
-		await expect(page).toHaveURL('https://www.saucedemo.com/checkout-complete.html');
-		await expect(page.locator('[data-test="complete-header"]')).toContainText('Thank you for your order!');
-		await expect(page.locator('[data-test="complete-text"]')).toContainText('Your order has been dispatched, and will arrive just as fast as the pony can get there!');
-		await expect(page.locator('[data-test="back-to-products"]')).toBeVisible()
-		await expect(page.locator('[data-test="generate-pdf-order"]')).toBeVisible()
-	})
+			await page.getByPlaceholder('First Name').fill('Tsanta');
+			await page.getByPlaceholder('Last Name').fill('Mark');
+			await page.getByPlaceholder('Zip/Postal Code').fill('104');
+			await page.getByRole('button', { name: 'Continue' }).click();
+		});
 
-	test('Should verify checkout validation form', async ({ page }) => {
-		//choose 2 products
-		await page.locator('[data-test="add-to-cart-sauce-labs-backpack"]').click();
-		await page.locator('[data-test="add-to-cart-test.allthethings()-t-shirt-(red)"]').click();
-		//open cart
-		await page.locator('[data-test="shopping-cart-link"]').click();
-		//checkout it
-		await page.locator('[data-test="checkout"]').click();
-		await expect(page).toHaveURL('https://www.saucedemo.com/checkout-step-one.html');
-		//fill form and validate
-		await page.locator('[data-test="firstName"]').fill('Tsanta');
-		await page.locator('[data-test="postalCode"]').fill('104');
-		await page.locator('[data-test="continue"]').click();
-		//check result
-		await expect(page.locator('[data-test="error"]')).toHaveText('Error: Last Name is required');
-	})
+		await test.step('Check the order summary', async () => {
+			await expect(page).toHaveURL(/checkout-step-two\.html/);
+			await expect(page.getByTestId('inventory-item-name')).toHaveText([
+				'Sauce Labs Backpack',
+				'Test.allTheThings() T-Shirt (Red)',
+			]);
+			await expect(page.getByTestId('subtotal-label')).toHaveText('Item total: $45.98');
+			await expect(page.getByTestId('tax-label')).toHaveText('Tax: $3.68');
+			await expect(page.getByTestId('total-label')).toHaveText('Total: $49.66');
+		});
 
-})
+		await test.step('Place the order', async () => {
+			await page.getByRole('button', { name: 'Finish' }).click();
+		});
+
+		await test.step('Check the order confirmation', async () => {
+			await expect(page).toHaveURL(/checkout-complete\.html/);
+			await expect(page.getByRole('heading', { name: 'Thank you for your order!' })).toBeVisible();
+			await expect(page.getByRole('button', { name: 'Back Home' })).toBeVisible();
+			await expect(page.getByRole('button', { name: 'Generate PDF order' })).toBeVisible();
+		});
+	});
+
+	test('Should require the last name on the checkout form', async ({ page }) => {
+		await test.step('Add two products and go to checkout', async () => {
+			await productCard(page, 'Sauce Labs Backpack').getByRole('button', { name: 'Add to cart' }).click();
+			await productCard(page, 'Test.allTheThings() T-Shirt (Red)')
+				.getByRole('button', { name: 'Add to cart' })
+				.click();
+			await page.getByTestId('shopping-cart-link').click();
+			await page.getByRole('button', { name: 'Checkout' }).click();
+			await expect(page).toHaveURL(/checkout-step-one\.html/);
+		});
+
+		await test.step('Submit the form without a last name', async () => {
+			await page.getByPlaceholder('First Name').fill('Tsanta');
+			await page.getByPlaceholder('Zip/Postal Code').fill('104');
+			await page.getByRole('button', { name: 'Continue' }).click();
+		});
+
+		await expect(page.getByRole('alert')).toHaveText('Error: Last Name is required');
+		await expect(page).toHaveURL(/checkout-step-one\.html/);
+	});
+});
