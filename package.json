@@ -1,0 +1,22 @@
+{
+  "name": "playwright-e2e-portfolio",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MarkAdvalorem/playwright-e2e-portfolio.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MarkAdvalorem/playwright-e2e-portfolio/issues"
+  },
+  "homepage": "https://github.com/MarkAdvalorem/playwright-e2e-portfolio#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^26.6.5"
+  }
+}
