@@ -37,9 +37,9 @@ test.describe('Checkout', () => {
 				'Sauce Labs Backpack',
 				'Test.allTheThings() T-Shirt (Red)',
 			]);
-			await expect(page.getByTestId('subtotal-label')).toHaveText('Item total: $45.98');
-			await expect(page.getByTestId('tax-label')).toHaveText('Tax: $3.68');
-			await expect(page.getByTestId('total-label')).toHaveText('Total: $49.66');
+			await expect.soft(page.getByTestId('subtotal-label')).toHaveText('Item total: $45.98');
+			await expect.soft(page.getByTestId('tax-label')).toHaveText('Tax: $3.68');
+			await expect.soft(page.getByTestId('total-label')).toHaveText('Total: $49.66');
 		});
 
 		await test.step('Place the order', async () => {
